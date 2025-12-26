@@ -1,8 +1,9 @@
-import express from "express";
+import express, { response } from "express";
 import "dotenv/config";
 
 
 const app = express()
+app.use(express.json());
 
 //Dummy data for the file.
 const students = [
@@ -38,12 +39,28 @@ const students = [
   { id: 30, first: "Sofia", middle: "Isabel", last: "Adams", email: "s.adams@example.com", gender: "FEMALE", dob: "2000-05-27", course: "Law" }
 ];
 
+
+/* ====================== Middleware START ====================== */
+
+
+
+/* ====================== Middleware END ====================== */
+
+/* =========================START=========================
+ HTTP Request Practice for 
+GET, 
+POST, 
+PUT, 
+PATCH,
+DELETE 
+*/
+
 app.get("/", async (request, response) =>{
     return response.status(200).send(students);
 });
 
 //Selection of a specific entity
-app.get("/student/:id", (request, response) =>{
+app.get("/api/student/:id", (request, response) =>{
     const parsedID = parseInt(request.params.id);
     if(isNaN(parsedID)) return response.status(400).send({msg: "Number is not a NAN"});
 
@@ -51,7 +68,6 @@ app.get("/student/:id", (request, response) =>{
     if(!person) return response.sendStatus(500);
 
     return response.send(person);
-    
 });
 
 //This is how we handle the query portion of the get HTTP request
@@ -61,12 +77,12 @@ app.get("/api/student", (request, response) =>{
     const {
         query: {filter, value},
     } = request;
-
     
     if(filter && value) {
-        return response.send(students.filter((user) =>{
-            return user[filter].includes(value)
-        }));
+        const stud = students.filter((user) =>{
+            return user[filter].toLowerCase().includes(value.toLowerCase())
+        });
+        return response.send(stud);
     }
 
     return response.send(students);
@@ -74,6 +90,84 @@ app.get("/api/student", (request, response) =>{
 
 
 
+app.post("/api/post", (request, response)=>{
+    const {body} = request;
+    const newUser = {id: students[students.length -1].id +1, ...body};
+    students.push(newUser);
+    return response.status(201).send(newUser);
+})
+
+
+//Grabs the values of data body
+
+//Post, Adds new data to the list
+app.post('/api/student', (req, resp)=>{
+    const {body} = req;
+
+    const lastID = students[students.length -1].id+1;
+    const newStudent = {id: lastID, ...body};
+    students.push(newStudent);
+    console.log(newStudent);
+    return resp.status(201).send(newStudent);
+
+});
+
+//Patch, updates partial areas within the an existing thing
+
+app.patch("/api/student/:id", (request, response)=>{
+    //First to get the updates we have to find the index of the object within the array
+    //we do this by acquiring the id which we can use to find the index.
+
+    const {body} = request;
+
+    const parsedID = parseInt(request.params.id);
+    if(isNaN(parsedID)) return response.status(400).send({msg: "id is not a number"});
+
+    const studentIndex = students.findIndex((stud) => stud.id === parsedID);
+    if(studentIndex === -1){
+        return response.status(404).send({msg: "Student is not found"});
+    }
+    console.log(studentIndex);
+
+    students[studentIndex] = {...students[studentIndex], ...body};
+
+    return response.status(201).send(students[studentIndex]);
+});
+
+app.put('/api/student/:id', (request, response)=>{
+    const {body, params: {id}} = request;
+    const parsedID = parseInt(id);
+    if(isNaN(parsedID)) return response.status(400).send({msg: "Id is not a number"});
+
+    const studIndex = students.findIndex((user)=> user.id === parsedID);
+    if(studIndex === -1) return response.status(400).send({msg: "Index of student not found"});
+
+    students[studIndex] = {id: parsedID, ...body};
+
+    return response.status(201).send(students[studIndex]);
+});
+
+
+app.delete('/api/student/:id', (request, response)=>{
+    const parsedID = parseInt(request.params.id);
+    if(isNaN(parsedID)) return response.status(401).send({msg: "id is not a number"});
+
+    const studIndex = students.findIndex((user)=>{
+        return user.id === parsedID;
+    })
+
+    if(studIndex === -1) return response.status(404).send({msg: "Student not found"});
+
+    students.splice(studIndex, 1);
+
+    /* const person = students.find((user)=>{
+        return user.id === parsedID;
+    }); */
+    console.log(studIndex);
+
+
+})
+/* =========================END========================= */
 
 
 
@@ -82,7 +176,18 @@ app.get("/api/student", (request, response) =>{
 
 
 
-//It is a great practice to keep the port info in a constant var and grab it from an evn {install npm i dotenv}
+
+
+
+
+
+
+
+
+
+
+//It is a great practice to keep the port info in a constant var and 
+// grab it from an evn {install npm i dotenv}
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, ()=>{
